@@ -2,19 +2,22 @@ package shared
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
+
+	"log"
 
 	"github.com/supabase-community/supabase-go"
 )
 
 func CreateSupabaseClient() (*supabase.Client, error) {
 	client, err := supabase.NewClient(os.Getenv("SUPABASE_URL"), os.Getenv("SUPABASE_KEY"), &supabase.ClientOptions{})
+
 	if err != nil {
-		fmt.Println("Cannot initalize client", err)
+		log.Printf("Cannot initialize client: %v", err)
 	} else {
-		fmt.Println("Initailized supabase client")
+		log.Printf("Initialized supabase client")
 	}
+
 	return client, err
 }
 
@@ -36,9 +39,10 @@ func UpsertProblemIntoDatabase(username string, problem LeetCodeProblem) error {
 		Execute()
 
 	if err != nil {
-		fmt.Println("Error upserting database:", err)
+		log.Printf("Error upserting database: %v", err)
 	}
-	fmt.Println("Successfully upserted database entry for user:", username)
+
+	log.Printf("Successfully upserted database entry for user: %s", username)
 	return err
 }
 
@@ -56,9 +60,10 @@ func DeleteProblemFromDatabase(username string, problem_title_slug string) error
 		Execute()
 
 	if err != nil {
-		fmt.Println("Error deleting database entry:", err)
+		log.Printf("Error deleting database entry: %v", err)
 	}
-	fmt.Println("Successfully deleted database entry for user:", username)
+
+	log.Printf("Successfully deleted database entry for user: %s", username)
 	return err
 }
 
@@ -67,24 +72,24 @@ func GetProblemsFromDatabase(username string) []LeetCodeProblem {
 
 	client, e := CreateSupabaseClient()
 	if e != nil {
-		fmt.Println("Error creating supabase client:", e)
+		log.Printf("Error creating supabase client: %v", e)
 		return []LeetCodeProblem{}
 	}
 	table := os.Getenv("SUPABASE_TABLE")
 
-	fmt.Println("Getting problems from database for user:", username)
+	log.Printf("Getting problems from database for user: %s", username)
 	rawData, _, err := client.From(table).Select("*", "", false).Eq("username", username).Execute()
 	if err != nil {
-		fmt.Println("Error fetching data:", err)
+		log.Printf("Error fetching data: %v", err)
 		return []LeetCodeProblem{}
 	}
 
-	fmt.Println("Raw data:", string(rawData))
+	log.Printf("Raw data: %s", string(rawData))
 
 	var rawProblems []map[string]interface{}
 	err = json.Unmarshal(rawData, &rawProblems)
 	if err != nil {
-		fmt.Println("Error unmarshaling data:", err)
+		log.Printf("Error unmarshaling data: %v", err)
 		return []LeetCodeProblem{}
 	}
 	for _, rawProblem := range rawProblems {
@@ -97,6 +102,6 @@ func GetProblemsFromDatabase(username string) []LeetCodeProblem {
 		problems = append(problems, problem)
 	}
 
-	fmt.Printf("Problems for user %s: %+v\n", username, problems)
+	log.Printf("Problems for user %s: %+v", username, problems)
 	return problems
 }
