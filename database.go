@@ -8,7 +8,7 @@ import (
 	"github.com/supabase-community/supabase-go"
 )
 
-func createSupabaseClient() (*supabase.Client, error) {
+func CreateSupabaseClient() (*supabase.Client, error) {
 	client, err := supabase.NewClient(os.Getenv("SUPABASE_URL"), os.Getenv("SUPABASE_KEY"), &supabase.ClientOptions{})
 	if err != nil {
 		fmt.Println("Cannot initalize client", err)
@@ -18,8 +18,8 @@ func createSupabaseClient() (*supabase.Client, error) {
 	return client, err
 }
 
-func upsertProblemIntoDatabase(username string, problem LeetCodeProblem) error {
-	client, err := createSupabaseClient()
+func UpsertProblemIntoDatabase(username string, problem LeetCodeProblem) error {
+	client, err := CreateSupabaseClient()
 	if err != nil {
 		return err
 	}
@@ -42,8 +42,8 @@ func upsertProblemIntoDatabase(username string, problem LeetCodeProblem) error {
 	return err
 }
 
-func deleteProblemFromDatabase(username string, problem_title_slug string) error {
-	client, err := createSupabaseClient()
+func DeleteProblemFromDatabase(username string, problem_title_slug string) error {
+	client, err := CreateSupabaseClient()
 	if err != nil {
 		return err
 	}
@@ -62,10 +62,10 @@ func deleteProblemFromDatabase(username string, problem_title_slug string) error
 	return err
 }
 
-func getProblemsFromDatabase(username string) []LeetCodeProblem {
+func GetProblemsFromDatabase(username string) []LeetCodeProblem {
 	var problems []LeetCodeProblem
 
-	client, e := createSupabaseClient()
+	client, e := CreateSupabaseClient()
 	if e != nil {
 		fmt.Println("Error creating supabase client:", e)
 		return []LeetCodeProblem{}
