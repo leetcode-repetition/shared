@@ -1,4 +1,4 @@
-module shared
+module github.com/jmurrah/leetcode-repetition-shared
 
 go 1.22.4
 
