@@ -2,6 +2,7 @@ package shared
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"log"
@@ -9,26 +10,26 @@ import (
 	"github.com/supabase-community/supabase-go"
 )
 
-func CreateSupabaseClient() (*supabase.Client, error) {
-	client, err := supabase.NewClient(os.Getenv("SUPABASE_URL"), os.Getenv("SUPABASE_KEY"), &supabase.ClientOptions{})
+var supabaseClient *supabase.Client
 
+func InitSupabaseClient() error {
+	var err error
+	supabaseClient, err = supabase.NewClient(os.Getenv("SUPABASE_URL"), os.Getenv("SUPABASE_KEY"), &supabase.ClientOptions{})
 	if err != nil {
 		log.Printf("Cannot initialize client: %v", err)
-	} else {
-		log.Printf("Initialized supabase client")
+		return err
 	}
-
-	return client, err
+	log.Printf("Initialized supabase client")
+	return nil
 }
 
 func UpsertProblemIntoDatabase(username string, problem LeetCodeProblem) error {
-	client, err := CreateSupabaseClient()
-	if err != nil {
-		return err
+	if supabaseClient == nil {
+		return fmt.Errorf("supabase client not initialized")
 	}
 
 	table := os.Getenv("SUPABASE_TABLE")
-	_, _, err = client.From(table).
+	_, _, err := supabaseClient.From(table).
 		Upsert(map[string]interface{}{
 			"username":           username,
 			"titleSlug":          problem.TitleSlug,
@@ -47,13 +48,12 @@ func UpsertProblemIntoDatabase(username string, problem LeetCodeProblem) error {
 }
 
 func DeleteProblemFromDatabase(username string, problem_title_slug string) error {
-	client, err := CreateSupabaseClient()
-	if err != nil {
-		return err
+	if supabaseClient == nil {
+		return fmt.Errorf("supabase client not initialized")
 	}
 
 	table := os.Getenv("SUPABASE_TABLE")
-	_, _, err = client.From(table).
+	_, _, err := supabaseClient.From(table).
 		Delete("", "").
 		Eq("username", username).
 		Eq("titleSlug", problem_title_slug).
@@ -68,17 +68,16 @@ func DeleteProblemFromDatabase(username string, problem_title_slug string) error
 }
 
 func GetProblemsFromDatabase(username string) []LeetCodeProblem {
-	var problems []LeetCodeProblem
-
-	client, e := CreateSupabaseClient()
-	if e != nil {
-		log.Printf("Error creating supabase client: %v", e)
+	if supabaseClient == nil {
+		log.Printf("supabase client  not initialized")
 		return []LeetCodeProblem{}
 	}
+
+	var problems []LeetCodeProblem
 	table := os.Getenv("SUPABASE_TABLE")
 
 	log.Printf("Getting problems from database for user: %s", username)
-	rawData, _, err := client.From(table).Select("*", "", false).Eq("username", username).Execute()
+	rawData, _, err := supabaseClient.From(table).Select("*", "", false).Eq("username", username).Execute()
 	if err != nil {
 		log.Printf("Error fetching data: %v", err)
 		return []LeetCodeProblem{}
@@ -104,4 +103,23 @@ func GetProblemsFromDatabase(username string) []LeetCodeProblem {
 
 	log.Printf("Problems for user %s: %+v", username, problems)
 	return problems
+}
+
+func DeleteAllProblemsFromDatabase(username string) error {
+	if supabaseClient == nil {
+		return fmt.Errorf("supabase client not initialized")
+	}
+
+	table := os.Getenv("SUPABASE_TABLE")
+	_, _, err := supabaseClient.From(table).
+		Delete("", "").
+		Eq("username", username).
+		Execute()
+
+	if err != nil {
+		log.Printf("Error deleting database entry: %v", err)
+	}
+
+	log.Printf("Successfully deleted all database entries for user: %s", username)
+	return err
 }
