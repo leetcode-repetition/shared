@@ -41,6 +41,29 @@ func UpsertProblemIntoDatabase(userId string, problem LeetCodeProblem) error {
 
 	if err != nil {
 		log.Printf("Error upserting database: %v", err)
+		return err
+	}
+
+	log.Printf("Successfully upserted database entry for user: %s", userId)
+	return err
+}
+
+func UpsertApiKeyIntoDatabase(userId string, token string, apiKey string) error {
+	if supabaseClient == nil {
+		return fmt.Errorf("supabase client not initialized")
+	}
+
+	table := os.Getenv("SUPABASE_API_TABLE")
+	_, _, err := supabaseClient.From(table).
+		Upsert(map[string]interface{}{
+			"userId": userId,
+			"token":  token,
+			"apiKey": apiKey,
+		}, "userId,token", "", "").
+		Execute()
+
+	if err != nil {
+		log.Printf("Error upserting database: %v", err)
 	}
 
 	log.Printf("Successfully upserted database entry for user: %s", userId)
@@ -69,7 +92,7 @@ func DeleteProblemFromDatabase(userId string, problem_title_slug string) error {
 
 func GetProblemsFromDatabase(userId string) []LeetCodeProblem {
 	if supabaseClient == nil {
-		log.Printf("supabase client  not initialized")
+		log.Printf("supabase client not initialized")
 		return []LeetCodeProblem{}
 	}
 
@@ -103,6 +126,42 @@ func GetProblemsFromDatabase(userId string) []LeetCodeProblem {
 
 	log.Printf("Problems for user %s: %+v", userId, problems)
 	return problems
+}
+
+func GetApiKeyFromDatabase(userId string, token string) string {
+	if supabaseClient == nil {
+		log.Printf("supabase client not initialized")
+		return ""
+	}
+
+	table := os.Getenv("SUPABASE_API_TABLE")
+
+	log.Printf("Getting problems from database for user: %s", userId)
+	rawData, _, err := supabaseClient.From(table).Select("*", "", false).Eq("userId", userId).Eq("token", token).Execute()
+	if err != nil {
+		log.Printf("Error fetching data: %v", err)
+		return ""
+	}
+
+	log.Printf("Raw data: %s", string(rawData))
+
+	var results []map[string]interface{}
+	err = json.Unmarshal(rawData, &results)
+	if err != nil {
+		log.Printf("Error unmarshaling data: %v", err)
+		return ""
+	}
+
+	if len(results) == 0 {
+		return ""
+	}
+
+	apiKey, ok := results[0]["apiKey"].(string)
+	if !ok {
+		return ""
+	}
+
+	return apiKey
 }
 
 func DeleteAllProblemsFromDatabase(userId string) error {
