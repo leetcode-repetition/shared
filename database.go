@@ -159,13 +159,13 @@ func GetApiKeyFromDatabase(userId string, token string) (string, int64) {
 	}
 
 	apiKey, okApiKey := results[0]["apiKey"].(string)
-	apiKeyCreationTime, okApiKeyCreationTime := results[0]["apiKeyCreationTime"].(int64)
+	apiKeyCreationTimeFloat, okApiKeyCreationTime := results[0]["apiKeyCreationTime"].(float64)
 	if !okApiKey || !okApiKeyCreationTime {
 		log.Printf("API key found but error reading for: %s", userId)
 		return "", 0
 	}
 
-	return apiKey, apiKeyCreationTime
+	return apiKey, int64(apiKeyCreationTimeFloat)
 }
 
 func DeleteAllProblemsFromDatabase(userId string) error {
