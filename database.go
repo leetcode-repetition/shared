@@ -137,7 +137,7 @@ func GetApiKeyFromDatabase(userId string, token string) (string, int64) {
 
 	table := os.Getenv("SUPABASE_API_TABLE")
 
-	log.Printf("Getting problems from database for user: %s", userId)
+	log.Printf("Getting api key from database for user: %s", userId)
 	rawData, _, err := supabaseClient.From(table).Select("*", "", false).Eq("userId", userId).Eq("token", token).Execute()
 	if err != nil {
 		log.Printf("Error fetching data: %v", err)
@@ -154,12 +154,14 @@ func GetApiKeyFromDatabase(userId string, token string) (string, int64) {
 	}
 
 	if len(results) == 0 {
+		log.Printf("API key does NOT EXIST for user: %s", userId)
 		return "", 0
 	}
 
 	apiKey, okApiKey := results[0]["apiKey"].(string)
 	apiKeyCreationTime, okApiKeyCreationTime := results[0]["apiKeyCreationTime"].(int64)
 	if !okApiKey || !okApiKeyCreationTime {
+		log.Printf("API key found but error reading for: %s", userId)
 		return "", 0
 	}
 
