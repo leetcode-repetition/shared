@@ -48,7 +48,7 @@ func UpsertProblemIntoDatabase(userId string, problem LeetCodeProblem) error {
 	return err
 }
 
-func UpsertApiKeyIntoDatabase(userId string, token string, apiKey string) error {
+func UpsertApiKeyIntoDatabase(userId string, token string, apiKey string, apiKeyCreationTime int64) error {
 	if supabaseClient == nil {
 		return fmt.Errorf("supabase client not initialized")
 	}
@@ -56,9 +56,10 @@ func UpsertApiKeyIntoDatabase(userId string, token string, apiKey string) error 
 	table := os.Getenv("SUPABASE_API_TABLE")
 	_, _, err := supabaseClient.From(table).
 		Upsert(map[string]interface{}{
-			"userId": userId,
-			"token":  token,
-			"apiKey": apiKey,
+			"userId":             userId,
+			"token":              token,
+			"apiKey":             apiKey,
+			"apiKeyCreationTime": apiKeyCreationTime,
 		}, "userId,token", "", "").
 		Execute()
 
@@ -128,10 +129,10 @@ func GetProblemsFromDatabase(userId string) []LeetCodeProblem {
 	return problems
 }
 
-func GetApiKeyFromDatabase(userId string, token string) string {
+func GetApiKeyFromDatabase(userId string, token string) (string, int64) {
 	if supabaseClient == nil {
 		log.Printf("supabase client not initialized")
-		return ""
+		return "", 0
 	}
 
 	table := os.Getenv("SUPABASE_API_TABLE")
@@ -140,7 +141,7 @@ func GetApiKeyFromDatabase(userId string, token string) string {
 	rawData, _, err := supabaseClient.From(table).Select("*", "", false).Eq("userId", userId).Eq("token", token).Execute()
 	if err != nil {
 		log.Printf("Error fetching data: %v", err)
-		return ""
+		return "", 0
 	}
 
 	log.Printf("Raw data: %s", string(rawData))
@@ -149,19 +150,20 @@ func GetApiKeyFromDatabase(userId string, token string) string {
 	err = json.Unmarshal(rawData, &results)
 	if err != nil {
 		log.Printf("Error unmarshaling data: %v", err)
-		return ""
+		return "", 0
 	}
 
 	if len(results) == 0 {
-		return ""
+		return "", 0
 	}
 
-	apiKey, ok := results[0]["apiKey"].(string)
-	if !ok {
-		return ""
+	apiKey, okApiKey := results[0]["apiKey"].(string)
+	apiKeyCreationTime, okApiKeyCreationTime := results[0]["apiKeyCreationTime"].(int64)
+	if !okApiKey || !okApiKeyCreationTime {
+		return "", 0
 	}
 
-	return apiKey
+	return apiKey, apiKeyCreationTime
 }
 
 func DeleteAllProblemsFromDatabase(userId string) error {
